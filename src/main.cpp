@@ -179,7 +179,7 @@ String dimmTo (int id, int power, const char* state) {
 // {"id":1, "method":"set_config", "SSID":"Wi-Fi SSID", "PASSWD": "PASSWORD"}
 // {"id":1, "method":"get_temperature"}
 // {"id":1, "method":"get_state"}
-// {"id":1, "method":"update", "IP":"10.0.1.100", "url":"/update/firmware.bin"}
+// {"id":1, "method":"update", "IP":"192.168.1.43", "url":"/update/firmware.bin"}
 // {"id":1, "method":"set_mode", "mode":"TOGGLE_MODE"}
 
 void discoverResponder() {
