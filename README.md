@@ -1,13 +1,19 @@
-# ESP8266 DIY AC Dimmer 220V
-ESP8266 DIY Smart Home AC Dimmer 220V
+# ESP8266 DIY Smart Home Zero-Cross AC Dimmer 220V
 
-DIY Smart Home based on Espressif Systems (ESP32, ESP8266) Domoticz plugin
+DIY Smart Home based on Espressif Systems (ESP32, ESP8266) Family device
 
 ## Connection diagram for ESP Smart Home DIY AC dimmer
 
+**Hardware:**
+
+- [x] Espressif Systems ESP8266 (NodeMCU)
+- [x] RobotDyn Thyristor AC
+
 ![connection diagram](https://github.com/Whilser/ESP-DIY-Samrt-Home/raw/master/images/ESPDIYSmartHome.png)
 
-SSH commands:
+![Pinout] (https://robotdyn.com/pub/media/0G-00005677==Mod-Dimmer-5A-1L/DOCS/PINOUT==0G-00005677==Mod-Dimmer-5A-1L.jpg)
+
+Control through SSH commands:
 
     {"id":1, "method":"set_power", "power":"50", "state":"ON"}
     {"id":1, "method":"set_power", "power":"50", "state":"OFF"}
