@@ -49,3 +49,30 @@ print('Discovered. Device ID: {0}, IP: {1}, Model: {2}'.format(deviceID, IP, har
     {"id":1, "method":"get_temperature"}
     {"id":1, "method":"get_state"}
     {"id":1, "method":"update", "IP":"192.168.4.1", "url":"/update/firmware.bin"}
+    
+ ### Connecting the device to the Wi-Fi network
+ 
+In case of unsuccessful connection to the Wi-Fi network, the device creates an access point with an ip address 192.168.4.1. To send Wi-Fi network settings (SSID, PASSWORD), connect to the AP and send a command via SSH terminal:
+
+    echo '{"id":1, "method":"set_config", "SSID":"Wi-Fi SSID", "PASSWD": "PASSWORD"}' | nc -w1 <deviceIP> 2000
+ 
+ **Examples:**
+ 
+* Get state
+
+        echo '{"id":1, "method":"get_state"}' | nc -w1 <deviceIP> 2000
+
+* Switch ON
+
+        echo '{"id":1, "method":"set_state", "state":"ON"}' | nc -w1 <deviceIP> 2000
+
+* Switch OFF
+
+        echo '{"id":1, "method":"set_state", "state":"OFF"}' | nc -w1 <deviceIP> 2000
+
+* Get temperature
+
+        echo '{"id":1, "method":"get_temperature"}' | nc -w1 192.168.1.43 2000
+        
+In case of temperature exceeding of 40 degrees celsius, the device will automatically turn itself OFF and stop receiving commands until the temperature drops.
+
