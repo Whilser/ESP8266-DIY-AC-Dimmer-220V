@@ -72,7 +72,7 @@ In case of unsuccessful connection to the Wi-Fi network, the device creates an a
 
 * Get temperature
 
-        echo '{"id":1, "method":"get_temperature"}' | nc -w1 192.168.1.43 2000
+        echo '{"id":1, "method":"get_temperature"}' | nc -w1 <deviceIP> 2000
         
 In case of temperature exceeding of 40 degrees celsius, the device will automatically turn itself OFF and stop receiving commands until the temperature drops.
 
