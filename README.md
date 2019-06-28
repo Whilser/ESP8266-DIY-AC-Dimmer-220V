@@ -32,7 +32,7 @@ print('Discovered. Device ID: {0}, IP: {1}, Model: {2}'.format(deviceID, IP, har
 
 ```
 
-###### Connection diagram for ESP Smart Home DIY AC dimmer
+### Connection diagram for ESP Smart Home DIY AC dimmer
 
 ![connection diagram](https://github.com/Whilser/ESP-DIY-Samrt-Home/raw/master/images/ESPDIYSmartHome.png)
 
