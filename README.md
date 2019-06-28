@@ -2,7 +2,12 @@
 
 DIY Smart Home based on Espressif Systems (ESP32, ESP8266) Family device
 
-**Discover python script**
+**Hardware:**
+
+- [x] Espressif Systems ESP8266 (NodeMCU)
+- [x] RobotDyn Thyristor AC
+
+**Discover python script:**
 
 ```
 import json
@@ -28,11 +33,6 @@ print('Discovered. Device ID: {0}, IP: {1}, Model: {2}'.format(deviceID, IP, har
 ```
 
 ###### Connection diagram for ESP Smart Home DIY AC dimmer
-
-**Hardware:**
-
-- [x] Espressif Systems ESP8266 (NodeMCU)
-- [x] RobotDyn Thyristor AC
 
 ![connection diagram](https://github.com/Whilser/ESP-DIY-Samrt-Home/raw/master/images/ESPDIYSmartHome.png)
 
