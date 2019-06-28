@@ -13,7 +13,7 @@ DIY Smart Home based on Espressif Systems (ESP32, ESP8266) Family device
 import json
 import socket
 
-print('Starting discover ESP8266 DYI Smart Home devices...')
+print('Starting discover ESP8266 DIY Smart Home devices...')
 helobytes = 'discover'.encode()
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
