@@ -84,9 +84,9 @@ void dimmerLamp::setPower(int power)
 
 int dimmerLamp::getPower(void)
 {
-	if (dimState[this->current_num] == ON)
+	//if (dimState[this->current_num] == ON)
 		return dimPower[this->current_num];
-	else return 0;
+	//else return 0;
 }
 
 void dimmerLamp::setState(ON_OFF_typedef ON_OFF)

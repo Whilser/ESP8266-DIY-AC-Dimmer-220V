@@ -9,7 +9,7 @@
 #include <Timer.h>
 #include <uptime_formatter.h>
 
-#define VERSION "0.1.0"
+#define VERSION "0.1.1"
 #define HARDWARE "ZCACD1"
 
 #define LED_PIN D6
@@ -117,7 +117,7 @@ void setup() {
   emergencyTimer->setOnTimer(&emergencyCallback);
   emergencyTimer->Start();
 
-  Serial.printf(HARDWARE" version %s started.\n\r", VERSION);
+  Serial.printf("DIY AC dimmer 220V version %s started.\n\r", VERSION);
 
 }
 
@@ -179,7 +179,7 @@ String dimmTo (int id, int power, const char* state) {
 // {"id":1, "method":"set_config", "SSID":"Wi-Fi SSID", "PASSWD": "PASSWORD"}
 // {"id":1, "method":"get_temperature"}
 // {"id":1, "method":"get_state"}
-// {"id":1, "method":"update", "IP":"192.168.1.43", "url":"/update/firmware.bin"}
+// {"id":1, "method":"update", "IP":"192.168.4.1", "url":"/update/firmware.bin"}
 // {"id":1, "method":"set_mode", "mode":"TOGGLE_MODE"}
 
 void discoverResponder() {
@@ -293,7 +293,7 @@ void loop() {
                 StaticJsonDocument<200> jsonResult;
 
                 jsonResult["id"] = root["id"];
-                dimmer.getMode() ? jsonResult["result"] = "NORMAL_MODE" : jsonResult["result"] = "TOGGLE_MODE";
+                dimmer.getMode() ? jsonResult["result"] = "TOGGLE_MODE" : jsonResult["result"] = "NORMAL_MODE";
 
                 String jsonReply;
                 serializeJson(jsonResult, jsonReply);
@@ -323,5 +323,5 @@ void loop() {
     client.stop();
     Serial.println("Client disconnected");
   }
-
+  yield();
 }
