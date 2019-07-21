@@ -59,6 +59,9 @@ sensor:
     unit_of_measurement: "ºC"
 ```
 
+![HomeAssistant](https://github.com/Whilser/ESP8266-DIY-AC-Dimmer-220V/raw/master/images/DIY_Dimmer.png)
+
+
 **Control through SSH commands:**
 
     {"id":1, "method":"set_power", "power":"50", "state":"ON"}
