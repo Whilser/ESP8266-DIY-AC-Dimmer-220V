@@ -38,6 +38,27 @@ print('Discovered. Device ID: {0}, IP: {1}, Model: {2}'.format(deviceID, IP, har
 
 ![Pinout](https://robotdyn.com/pub/media/0G-00005677==Mod-Dimmer-5A-1L/DOCS/PINOUT==0G-00005677==Mod-Dimmer-5A-1L.jpg)
 
+
+**Home Assistant integration**
+
+```
+light:
+  - platform: mqtt
+    name: "DIY AC Dimmer 220V"
+    state_topic: "DIYSmartHomeACDimmer/light/status"
+    command_topic: "DIYSmartHomeACDimmer/light/switch"
+    brightness_state_topic: "DIYSmartHomeACDimmer/brightness/status"
+    brightness_command_topic: "DIYSmartHomeACDimmer/brightness/set"
+    payload_on: "ON"
+    payload_off: "OFF"
+
+sensor:
+  - platform: mqtt
+    name: "Temperature"
+    state_topic: "DIYSmartHomeACDimmer/sensor/temperature"
+    unit_of_measurement: "ºC"
+```
+
 **Control through SSH commands:**
 
     {"id":1, "method":"set_power", "power":"50", "state":"ON"}
@@ -45,6 +66,7 @@ print('Discovered. Device ID: {0}, IP: {1}, Model: {2}'.format(deviceID, IP, har
     {"id":1, "method":"set_state", "state":"OFF"}
     {"id":1, "method":"set_state", "state":"ON"}
     {"id":1, "method":"set_config", "SSID":"Wi-Fi SSID", "PASSWD": "PASSWORD"}
+    {"id":1, "method":"set_mqtt", "host": "MQTT server", "USER": "MQTT_USER", "PASSWD": "MQTT_PASSWD", "ROOT": "DIYSmartHomeACDimmer"}' | nc -w1 <IP ESP8266> 2000
     {"id":1, "method":"set_mode", "mode":"TOGGLE_MODE"}
     {"id":1, "method":"get_temperature"}
     {"id":1, "method":"get_state"}
@@ -52,11 +74,19 @@ print('Discovered. Device ID: {0}, IP: {1}, Model: {2}'.format(deviceID, IP, har
     
  ### Connecting the device to the Wi-Fi network
  
-In case of unsuccessful connection to the Wi-Fi network, the device creates an access point with an ip address 192.168.4.1. To send Wi-Fi network settings (SSID, PASSWORD) to the device, connect to the AP and send a command via SSH terminal:
+In case of unsuccessful connection to the Wi-Fi network, the device creates an access point with an ip address 192.168.4.1. To send Wi-Fi network settings (SSID, PASSWORD) to the device, connect to the AP and send a command in SSH terminal:
 
     echo '{"id":1, "method":"set_config", "SSID":"Wi-Fi SSID", "PASSWD": "PASSWORD"}' | nc -w1 <deviceIP> 2000
  
- **Examples:**
+ ### MQTT Configuration
+
+Just send a command in SSH terminal:
+
+    echo '{"id":1, "method":"set_mqtt", "host":"MQTT server", "USER": "MQTT_USER", "PASSWD": "MQTT_PASSWD", "ROOT": "DIYSmartHomeACDimmer"}' | nc -w1 <IP ESP8266> 2000
+
+**MQTT server** - Address of MQTT server, **MQTT_USER** - MQTT username, **MQTT_PASSWD** - password to access to MQTT server, **ROOT** - root topic of device, example: DIYSmartHomeACDimmer. 
+
+**Examples:**
  
 * Get state
 
