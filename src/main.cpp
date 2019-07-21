@@ -8,14 +8,21 @@
 #include <RBDdimmer.h>
 #include <Timer.h>
 #include <uptime_formatter.h>
+#include <PubSubClient.h>
 
-#define VERSION "0.1.1"
+#define VERSION "0.2.0"
 #define HARDWARE "ZCACD1"
 
 #define LED_PIN D6
 #define AC_LOAD D8
 #define ZC_PIN D1
 #define ONE_WIRE_BUS D5
+
+bool USE_MQTT = false;
+String MQTT_ROOT = "DIYSmartHomeACDimmer";
+
+WiFiClient espClient;
+PubSubClient mqttclient(espClient);
 
 WiFiClient WiFiEspClient;
 WiFiServer server(2000);
@@ -31,6 +38,28 @@ struct ESPconfig {
   char PASSWD[32];
 };
 
+struct MQTTconfig {
+  char HOST[32];
+  char USER[32];
+  char PASSWD[32];
+  char ROOT[32];
+};
+
+MQTTconfig readMQTTConfig () {
+  int eeAddress = 65;
+  MQTTconfig MQTTConfig;
+
+  EEPROM.begin(512);
+
+  for (int i = 0; i < 32; ++i) MQTTConfig.HOST[i]   = char(EEPROM.read(eeAddress + i)); eeAddress += 32;
+  for (int i = 0; i < 32; ++i) MQTTConfig.USER[i]   = char(EEPROM.read(eeAddress + i)); eeAddress += 32;
+  for (int i = 0; i < 32; ++i) MQTTConfig.PASSWD[i] = char(EEPROM.read(eeAddress + i)); eeAddress += 32;
+  for (int i = 0; i < 32; ++i) MQTTConfig.ROOT[i]   = char(EEPROM.read(eeAddress + i));
+
+  EEPROM.end();
+  return MQTTConfig;
+}
+
 ESPconfig readConfig () {
   int eeAddress = 0;
   ESPconfig wirelessConfig;
@@ -38,7 +67,9 @@ ESPconfig readConfig () {
   EEPROM.begin(512);
 
   for (int i = 0; i < 32; ++i) wirelessConfig.SSID[i]   = char(EEPROM.read(eeAddress + i)); eeAddress = 32;
-  for (int i = 0; i < 32; ++i) wirelessConfig.PASSWD[i] = char(EEPROM.read(eeAddress + i));
+  for (int i = 0; i < 32; ++i) wirelessConfig.PASSWD[i] = char(EEPROM.read(eeAddress + i)); eeAddress += 32;
+
+  USE_MQTT = char(EEPROM.read(eeAddress));
 
   EEPROM.end();
   return wirelessConfig;
@@ -53,10 +84,127 @@ bool writeConfig(const char SSID[32], const char PASSWD[32]) {
   for (int i = 0; i < 32; ++i)  EEPROM.write(eeAddress + i, SSID[i]); eeAddress = 32;
   for (int i = 0; i < 32; ++i)  EEPROM.write(eeAddress + i, PASSWD[i]);
 
+  eeAddress = 64;
+
+  USE_MQTT = false;
+  EEPROM.write(eeAddress, USE_MQTT);
+
   EEPROM.commit();
   EEPROM.end();
 
   return true;
+}
+
+bool writeMQTTConfig(const char HOST[32], const char USER[32], const char PASSWD[32], const char ROOT[32]) {
+  int eeAddress = 64;
+
+  EEPROM.begin(512);
+
+  USE_MQTT = true;
+  EEPROM.write(eeAddress, USE_MQTT); eeAddress +=1;
+
+  for (int i = 0; i < 32; ++i)  EEPROM.write(eeAddress + i, HOST[i]); eeAddress += 32;
+  for (int i = 0; i < 32; ++i)  EEPROM.write(eeAddress + i, USER[i]); eeAddress += 32;
+  for (int i = 0; i < 32; ++i)  EEPROM.write(eeAddress + i, PASSWD[i]); eeAddress += 32;
+  for (int i = 0; i < 32; ++i)  EEPROM.write(eeAddress + i, ROOT[i]);
+
+  EEPROM.commit();
+  EEPROM.end();
+
+  return true;
+}
+
+String switchOn (int id) {
+
+  dimmer.setState(ON);
+  digitalWrite(LED_PIN, HIGH);
+
+  if (mqttclient.connected()) {
+      dimmer.getState() ? mqttclient.publish(String(MQTT_ROOT+"/light/status").c_str(), "ON") : mqttclient.publish(String(MQTT_ROOT+"/light/status").c_str(), "OFF");
+  }
+
+  StaticJsonDocument<200> jsonResult;
+  jsonResult["id"] = id;
+  dimmer.getState() ? jsonResult["state"] = "ON" : jsonResult["state"] = "OFF";
+
+  String jsonReply;
+  serializeJson(jsonResult, jsonReply);
+
+  return jsonReply;
+}
+
+String switchOff (int id) {
+
+  dimmer.setState(OFF);
+  digitalWrite(LED_PIN, LOW);
+
+  if (mqttclient.connected()) {
+      dimmer.getState() ? mqttclient.publish(String(MQTT_ROOT+"/light/status").c_str(), "ON") : mqttclient.publish(String(MQTT_ROOT+"/light/status").c_str(), "OFF");
+  }
+
+  StaticJsonDocument<200> jsonResult;
+  jsonResult["id"] = id;
+  dimmer.getState() ? jsonResult["state"] = "ON" : jsonResult["state"] = "OFF";
+
+  String jsonReply;
+  serializeJson(jsonResult, jsonReply);
+  return jsonReply;
+}
+
+String dimmTo (int id, int power, const char* state) {
+
+  dimmer.setPower(power);
+  if (String(state) == "ON") {
+    dimmer.setState(ON); digitalWrite(LED_PIN, HIGH);
+
+  } else {
+    dimmer.setState(OFF); digitalWrite(LED_PIN, LOW);
+  }
+
+  if (mqttclient.connected()) {
+    mqttclient.publish(String(MQTT_ROOT+"/brightness/status").c_str(), String(dimmer.getPower()*255/100).c_str());
+    dimmer.getState() ? mqttclient.publish(String(MQTT_ROOT+"/light/status").c_str(), "ON") : mqttclient.publish(String(MQTT_ROOT+"/light/status").c_str(), "OFF");
+    Serial.print("Dimmer status: brightness "); Serial.println(String(dimmer.getPower()).c_str());
+
+  }
+
+  StaticJsonDocument<200> jsonResult;
+  jsonResult["id"] = id;
+  jsonResult["power"] = dimmer.getPower();
+  dimmer.getState() ? jsonResult["state"] = "ON" : jsonResult["state"] = "OFF";
+
+  String jsonReply;
+  serializeJson(jsonResult, jsonReply);
+  return jsonReply;
+
+}
+
+void MQTTcallback(char* topic, byte* payload, unsigned int length) {
+  String Payload = "";
+
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+
+  for (int i = 0; i < length; i++) Payload += (char)payload[i];
+  Serial.println(Payload);
+
+  if (String(topic) == MQTT_ROOT+"/light/switch") {
+      Serial.print("Command arrived: ");
+      Serial.println(Payload);
+
+      if (Payload == "ON")  switchOn(100);
+      if (Payload == "OFF") switchOff(100);
+  }
+
+  if (String(topic) == MQTT_ROOT+"/brightness/set") {
+      Serial.print("Command arrived: brightness "); Serial.println(Payload);
+
+      int brightness_pct = floor(Payload.toInt()*100/255);
+      Serial.print("brightness_pct: "); Serial.println(brightness_pct);
+
+      dimmTo(100, brightness_pct, "ON");
+  }
 }
 
 void emergencyCallback() {
@@ -67,8 +215,12 @@ void emergencyCallback() {
     dimmer.setState(OFF);
     digitalWrite(LED_PIN, LOW);
     Serial.printf("Temperature is %.2f degrees celsius. Swith OFF on emergency reason.\n\r", temperature);
-  } else Serial.printf("Temperature is %.2f degrees celsius\n\r", temperature);
+    if (mqttclient.connected()) mqttclient.publish(String(MQTT_ROOT+"/light/status").c_str(), "OFF");
 
+  } else {
+    if (temperature > -100) Serial.printf("Temperature is %.2f degrees celsius\n\r", temperature);
+    if (mqttclient.connected() && (temperature > -100)) mqttclient.publish(String(MQTT_ROOT+"/sensor/temperature").c_str(), String(temperature).c_str());
+  }
 }
 
 Timer *emergencyTimer = new Timer(60000);
@@ -117,70 +269,54 @@ void setup() {
   emergencyTimer->setOnTimer(&emergencyCallback);
   emergencyTimer->Start();
 
-  Serial.printf("DIY AC dimmer 220V version %s started.\n\r", VERSION);
-
+  Serial.printf("DIY AC dimmer 220V firmware version %s started.\n\r", VERSION);
 }
 
-String switchOn (int id) {
+unsigned long timing = 0;
 
-  dimmer.setState(ON);
-  digitalWrite(LED_PIN, HIGH);
+void MQTTreconnect() {
+  if (USE_MQTT && (millis() - timing > 5000)) {
 
-  StaticJsonDocument<200> jsonResult;
-  jsonResult["id"] = id;
-  dimmer.getState() ? jsonResult["state"] = "ON" : jsonResult["state"] = "OFF";
+      MQTTconfig MQTTConfig = readMQTTConfig();
+      MQTT_ROOT = MQTTConfig.ROOT;
+      mqttclient.setServer(MQTTConfig.HOST, 1883);
+      mqttclient.setCallback(MQTTcallback);
 
-  String jsonReply;
-  serializeJson(jsonResult, jsonReply);
-  return jsonReply;
+      if ((millis() - timing > 5000) && !mqttclient.connected()) {
+        timing = millis();
+        Serial.print("Attempting MQTT connection...");
 
-}
+        String clientId = "ESP_";
+        clientId += String(ESP.getChipId(), HEX);
 
-String switchOff (int id) {
+        if (mqttclient.connect(clientId.c_str(), MQTTConfig.USER, MQTTConfig.PASSWD)) {
+          Serial.println("connected");
 
-  dimmer.setState(OFF);
-  digitalWrite(LED_PIN, LOW);
+          mqttclient.subscribe(String(MQTT_ROOT+"/light/switch").c_str());
+          mqttclient.subscribe(String(MQTT_ROOT+"/light/status").c_str());
+          mqttclient.subscribe(String(MQTT_ROOT+"/brightness/status").c_str());
+          mqttclient.subscribe(String(MQTT_ROOT+"/brightness/set").c_str());
 
-  StaticJsonDocument<200> jsonResult;
-  jsonResult["id"] = id;
-  dimmer.getState() ? jsonResult["state"] = "ON" : jsonResult["state"] = "OFF";
-
-  String jsonReply;
-  serializeJson(jsonResult, jsonReply);
-  return jsonReply;
-
-}
-
-String dimmTo (int id, int power, const char* state) {
-
-  dimmer.setPower(power);
-  if (String(state) == "ON") {
-    dimmer.setState(ON); digitalWrite(LED_PIN, HIGH);
-
-  } else {
-    dimmer.setState(OFF); digitalWrite(LED_PIN, LOW);
+        } else {
+          Serial.print("failed, rc=");
+          Serial.print(mqttclient.state());
+          Serial.println(" try again in 5 seconds");
+        }
+      }
+    }
   }
 
-  StaticJsonDocument<200> jsonResult;
-  jsonResult["id"] = id;
-  jsonResult["power"] = dimmer.getPower();
-  dimmer.getState() ? jsonResult["state"] = "ON" : jsonResult["state"] = "OFF";
-
-  String jsonReply;
-  serializeJson(jsonResult, jsonReply);
-  return jsonReply;
-
-}
-
-// {"id":1, "method":"set_power", "power":"50", "state":"ON"}
-// {"id":1, "method":"set_power", "power":"50", "state":"OFF"}
-// {"id":1, "method":"set_state", "state":"OFF"}
-// {"id":1, "method":"set_state", "state":"ON"}
-// {"id":1, "method":"set_config", "SSID":"Wi-Fi SSID", "PASSWD": "PASSWORD"}
-// {"id":1, "method":"get_temperature"}
-// {"id":1, "method":"get_state"}
-// {"id":1, "method":"update", "IP":"192.168.4.1", "url":"/update/firmware.bin"}
-// {"id":1, "method":"set_mode", "mode":"TOGGLE_MODE"}
+// echo '{"id":1, "method":"set_power", "power":"50", "state":"ON"}' | nc -w1 192.168.1.43 2000
+// echo '{"id":1, "method":"set_power", "power":"50", "state":"OFF"}' | nc -w1 192.168.1.43 2000
+// echo '{"id":1, "method":"set_state", "state":"OFF"}' | nc -w1 192.168.1.43 2000
+// echo '{"id":1, "method":"set_state", "state":"ON"}' | nc -w1 192.168.1.43 2000
+// echo '{"id":1, "method":"set_config", "SSID":"Wi-Fi SSID", "PASSWD": "PASSWORD"}' | nc -w1 192.168.1.43 2000
+// echo '{"id":1, "method":"set_mqtt", "host":"MQTT server", "USER": "MQTT_USER", "PASSWD": "MQTT_PASSWD", "ROOT": "DIYSmartHomeACDimmer"}' | nc -w1 192.168.1.43 2000
+// echo '{"id":1, "method":"get_temperature"}' | nc -w1 192.168.1.43 2000
+// echo '{"id":1, "method":"get_state"}' | nc -w1 192.168.1.43 2000
+// echo '{"id":1, "method":"get_state"}' | nc -w1 192.168.1.43 2000
+// echo '{"id":1, "method":"update", "IP":"192.168.4.1", "url":"/update/firmware.bin"}' | nc -w1 192.168.1.43 2000
+// echo '{"id":1, "method":"set_mode", "mode":"TOGGLE_MODE"}' | nc -w1 192.168.1.43 2000
 
 void discoverResponder() {
 
@@ -263,6 +399,21 @@ void loop() {
                 }
               }
 
+              if (root["method"] == "set_mqtt") {
+                if (root.containsKey("host") & root.containsKey("USER") & root.containsKey("PASSWD") & root.containsKey("ROOT")) {
+                  writeMQTTConfig(root["host"], root["USER"],root["PASSWD"], root["ROOT"]);
+                  StaticJsonDocument<200> jsonResult;
+
+                  jsonResult["id"] = root["id"];
+                  jsonResult["result"] = "OK";
+
+                  String jsonReply;
+                  serializeJson(jsonResult, jsonReply);
+                  client.println(jsonReply);
+                  USE_MQTT = true;
+                }
+              }
+
               if (root["method"] == "get_temperature") {
                 StaticJsonDocument<200> jsonResult;
 
@@ -323,5 +474,7 @@ void loop() {
     client.stop();
     Serial.println("Client disconnected");
   }
-  yield();
+
+  if (USE_MQTT && !mqttclient.connected()) MQTTreconnect();
+  if (USE_MQTT) mqttclient.loop(); yield();
 }
