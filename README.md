@@ -113,3 +113,5 @@ Just send a command in SSH terminal:
         
 In case of temperature exceeding of 40 degrees celsius, the device will automatically turn itself OFF and stop receiving commands until the temperature drops.
 
+If you liked it, buy me coffee! <br>
+<a href="https://www.buymeacoffee.com/K8oYBpO" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/lato-orange.png" alt="If you liked it, buy me coffee!" style="height: 51px !important;width: 217px !important;" ></a>
